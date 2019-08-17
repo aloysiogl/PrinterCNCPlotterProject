@@ -1,54 +1,25 @@
-import com.fazecast.jSerialComm.*;
-
-import java.io.IOException;
-import java.io.InputStream;
-
 public class SerialTest {
     public static void main(String[] args) {
         SerialCommunicator communicator = new SerialCommunicator();
-        communicator.autoconnect(20);
-
-        //Loop for backwards and forward in the X axis
-//        byte[] forward = {(byte) 255, (byte) 0b00000000, 0, 0, 0, 0, 0, (byte) 255, (byte) 0b00000000};
-//        byte[] backward = {(byte) 255, (byte) 0b00000010, 0, 0, 0, 0, 0, (byte) 255, (byte) 0b00000010};
-//        byte[] forward = {(byte) 255, (byte) 0b00000010, (byte) 255, (byte) 0b00000000, 0, 0, 0, 0, 0};
-//        byte[] backward = {(byte) 255, (byte) 0b00000000, (byte) 255, (byte) 0b00000010, 0, 0, 0, 0, 0};
-        byte[] forward = {0, 0, 0, 0, (byte) 100, (byte) 0b00000000};
-        byte[] backward = {0, 0, 0, 0, (byte) 100, (byte) 0b00000010};
+        Printer p = new Printer(communicator);
+        System.out.println(communicator.getAvailablePortNames());
+        communicator.autoconnectToPort(4, 20);
 
         System.out.println("Writting data");
 
-        communicator.writeData(forward);
+        p.goToPositionXYZ(0, 0, 150);
         
         boolean spin = false;
 
         while (true) {
-            byte[] arr = new byte[1];
-            if (communicator.available() > 0) {
-                communicator.read(arr);
-            }
-            if (arr[0] == 5) {
+            if (p.jobTerminated()) {
                 if (spin) {
-                    communicator.writeData(forward);
+                    p.goToPositionXYZ(150, 150, 150);
                 } else {
-                    communicator.writeData(backward);
+                    p.goToPositionXYZ(-150, -150, -150);
                 }
                 spin = !spin;
             }
         }
-        //        SerialPort port = SerialPort.getCommPorts()[0];
-//        port.setBaudRate(115200);
-//        port.openPort();
-//        port.setComPortTimeouts(SerialPort.TIMEOUT_READ_SEMI_BLOCKING, 100, 0);
-//        InputStream in = port.getInputStream();
-//        byte[] arr1 = {100};
-//        byte[] arr2 = {-100};
-//        try {
-//            Thread.sleep(2000);
-//        } catch (InterruptedException e) {
-//            e.printStackTrace();
-//        }
-//        port.writeBytes(arr1, 1);
-//        boolean spin = false;
     }
 }
