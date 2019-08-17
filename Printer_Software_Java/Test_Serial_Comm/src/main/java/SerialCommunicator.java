@@ -53,49 +53,60 @@ public class SerialCommunicator {
         SerialPort[] serialPorts = SerialPort.getCommPorts();
         System.out.println("Beginning autoconnect cycle...");
         for (int i = 0; i < serialPorts.length; ++i){
-            //Try to connect to each port for the number of retries
-            connectToPort(i);
-            printerPort.openPort();
+            if (autoconnectToPort(i, retries) == 0)
+                return 0;
+        }
+        System.out.println("Failed to autoconnect");
+        return 1;
+    }
+
+    /*
+     * Tries to autoconnect to specific printer port
+     * @return 1 on fail 0 on success
+     */
+    public int autoconnectToPort(int portIndex, int retries){
+        //Try to connect to each port for the number of retries
+        connectToPort(portIndex);
+        printerPort.openPort();
+        try {
+            Thread.sleep(waitTimeForbegin);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        System.out.println("Trying to connect to port: " + printerPort.getSystemPortName());
+        //Retrying
+        for (int j = 0; j < retries; ++j) {
+            System.out.println("Try: " + j);
+            printerPort.writeBytes(connectionAccquiredMessage, connectionAccquiredMessage.length);
+            InputStream in = printerPort.getInputStream();
+            byte[] response = new byte[10];
             try {
-                Thread.sleep(waitTimeForbegin);
+                Thread.sleep(1000);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-            System.out.println("Trying to connect to port: " + printerPort.getSystemPortName());
-            //Retrying
-            for (int j = 0; j < retries; ++j) {
-                System.out.println("Try: " + j);
-                printerPort.writeBytes(connectionAccquiredMessage, connectionAccquiredMessage.length);
-                InputStream in = printerPort.getInputStream();
-                byte[] response = new byte[10];
+            try {
+                if (in.available() > 0) {
+                    in.read(response);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            //Checking if the response is correct
+            if (response[0] == 1) {
+                System.out.println("Connected to port: " + printerPort.getSystemPortName());
+                isConnected = true;
                 try {
-                    Thread.sleep(1000);
+                    Thread.sleep(waitTimeForConnect);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
-                try {
-                    if (in.available() > 0) {
-                        in.read(response);
-                    }
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-
-                //Checking if the response is correct
-                if (response[0] == 1) {
-                    System.out.println("Connected to port: " + printerPort.getSystemPortName());
-                    isConnected = true;
-                    try {
-                        Thread.sleep(waitTimeForConnect);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                    return 0;
-                }
+                return 0;
             }
-            printerPort.closePort();
         }
-        System.out.println("Failed to autoconnect");
+        printerPort.closePort();
+        System.out.println("Failed to autoconnect to port:" + portIndex);
         return 1;
     }
 
